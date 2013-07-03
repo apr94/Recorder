@@ -66,7 +66,8 @@ class KeyBoardListener(PyKeyboardEvent):
         print(history)
         
     def playHistory(self):
-        self.player.start()
+        Thread(target=self.player.run(history)).start()
+        
 
     def __init__(self):
         PyKeyboardEvent.__init__(self)
@@ -82,7 +83,7 @@ class KeyBoardListener(PyKeyboardEvent):
         print(keycode)
         if str(keycode) in self.commands:
             self.commands[str(keycode)]()
-
+            
 
 c = KeyBoardListener()
 
