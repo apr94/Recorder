@@ -1,65 +1,34 @@
-import pymouse 
-from pymouse import PyMouseEvent
 import pykeyboard 
 from pykeyboard import PyKeyboardEvent
-import threading
 from threading import Thread
-import time
 import HistoryPlayer
+import HistoryRecorder
 
-m = pymouse.PyMouse()
 k = pykeyboard.PyKeyboard()
 
-ack = 0
-lock1 = threading.Lock()
-
 history = []
-lock2 = threading.Lock()
 
-
-def changeAck(change):
-    global ack
-    with lock1:
-        ack = change
-        time.sleep(0.02) 
-
-def buildHistory(story):
-    global history
-    with lock2:
-        history.append(story)
-        time.sleep(0.02) 
-
-
-class MouseListener(PyMouseEvent):
-
-    def __init__(self):
-        PyMouseEvent.__init__(self)
-        self.history = []
-            
-    def click(self, x, y, button, press):
-        if ack == 1:
-            if press:
-                print(x, y, button)
-                buildHistory((x,y,button))
-
-m = MouseListener()
-         
 class KeyBoardListener(PyKeyboardEvent):
     
     def startRecording(self):
-        if ack != 1:
-            changeAck(1)
+        if self.ack != 1:
             print("Recording")
+            HistoryRecorder.changeAck(1)
+            self.ack = 1
+            
     
     def endRecording(self):
-        if ack == 1:
-            changeAck(2)
+        if self.ack == 1:
             print("Stopping Recording")
+            HistoryRecorder.changeAck(3)
+            self.ack = 3
+            
     
     def quitProgram(self):
         print("Quitting")
+        HistoryRecorder.changeAck(2)
+        self.ack = 2
         self.stop()
-        m.stop()
         
     
     def printHistory(self):
@@ -71,7 +40,9 @@ class KeyBoardListener(PyKeyboardEvent):
 
     def __init__(self):
         PyKeyboardEvent.__init__(self)
+        self.ack = 0
         self.player = HistoryPlayer.ThreadedPlayer()
+        self.recorder = HistoryRecorder.ThreadedRecorder()
         self.commands = {'24': self.quitProgram,
                          '26': self.endRecording,
                          '33': self.playHistory,
@@ -90,6 +61,6 @@ c = KeyBoardListener()
 if __name__ == '__main__':
     try:
         Thread(target=c.run).start()
-        Thread(target=m.run).start()  
+        Thread(target=c.recorder.run(history)).start()
     except Exception as err:
         print (err) 
